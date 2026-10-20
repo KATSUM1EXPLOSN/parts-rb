@@ -1,6 +1,7 @@
 import os
+import re
 import urllib.parse
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query
@@ -8,17 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
 
-# Общий пул соединений
 http_client: Optional[httpx.AsyncClient] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global http_client
     http_client = httpx.AsyncClient(
-        timeout=12.0,
+        timeout=10.0,
         headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8"
+            "Accept": "application/json, text/plain, */*"
         }
     )
     yield
@@ -52,106 +52,57 @@ class PartItem(BaseModel):
     priceByn: float
     imageUrl: Optional[str] = None
 
-KUFAR_RGN = {
-    "minsk": 7, "brest": 1, "vitebsk": 2, "gomel": 3, "grodno": 4, "mogilev": 6
-}
+# Транслитерация для Bamper.by (превращает "Фара передняя" -> "fara-perednyaya")
+def slugify(text: str) -> str:
+    trans = {
+        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z',
+        'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+        'с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch',
+        'ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',' ':'-'
+    }
+    s = text.lower().strip()
+    res = []
+    for char in s:
+        res.append(trans.get(char, char if char.isalnum() else '-'))
+    return re.sub(r'-+', '-', ''.join(res)).strip('-')
 
+@app.get("/")
 @app.get("/ping")
 async def ping():
-    return {"status": "ok", "service": "PartsRB Global Live"}
+    return {"status": "ok", "service": "PartsRB Backend Engine"}
 
-# 1. МИРОВОЙ КАТАЛОГ: Получение моделей для любой марки через NHTSA
-@app.get("/api/models")
-async def get_models_for_make(make: str = Query(..., min_length=2)):
-    """Возвращает все зарегистрированные в мире модели выбранной марки."""
-    url = f"https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/{urllib.parse.quote(make)}?format=json"
-    try:
-        resp = await http_client.get(url)
-        if resp.status_code == 200:
-            data = resp.json()
-            models = sorted(list(set(
-                item["Model_Name"].strip() for item in data.get("Results", []) if item.get("Model_Name")
-            )))
-            return {"make": make, "models": models}
-    except Exception as e:
-        print(f"NHTSA models error: {e}")
-    return {"make": make, "models": []}
-
-# 2. МИРОВОЙ VIN-ДЕКОДЕР: реальная расшифровка параметров авто по VIN
-@app.get("/api/vin-decode")
-async def decode_vin(vin: str = Query(..., min_length=11, max_length=17)):
-    vin = vin.strip().upper()
-    url = f"https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/{vin}?format=json"
-    try:
-        resp = await http_client.get(url)
-        if resp.status_code == 200:
-            res = resp.json().get("Results", [{}])[0]
-            make = res.get("Make", "").strip()
-            model = res.get("Model", "").strip()
-            year = res.get("ModelYear", "").strip()
-            displ = res.get("DisplacementL", "").strip()
-            fuel = res.get("FuelTypePrimary", "").strip()
-            cyl = res.get("EngineCylinders", "").strip()
-            
-            engine_info = []
-            if displ: engine_info.append(f"{displ}L")
-            if cyl: engine_info.append(f"V{cyl}" if cyl in ["6","8","12"] else f"{cyl}цил.")
-            if fuel: engine_info.append(fuel)
-
-            return {
-                "success": bool(make and model),
-                "vin": vin,
-                "make": make.title() if make else "",
-                "model": model,
-                "year": year,
-                "engine": " ".join(engine_info) if engine_info else res.get("EngineModel", ""),
-                "country": res.get("PlantCountry", "")
-            }
-    except Exception as e:
-        print(f"VIN Decode Error: {e}")
-    return {"success": False, "vin": vin}
-
-# 3. ПОИСК ЗАПЧАСТЕЙ: Живой Kufar API + проверенные прямые ссылки
 @app.post("/api/search", response_model=List[PartItem])
 async def search_parts(req: SearchRequest):
     results: List[PartItem] = []
-    
     clean_car = req.car.strip()
     clean_part = req.part.strip()
-    full_query = f"{clean_car} {clean_part}".strip()
-    encoded_full = urllib.parse.quote(full_query)
-    encoded_part = urllib.parse.quote(clean_part)
-
-    # 1. Реальный запрос к Kufar API
+    
+    # 1. Запрос к реальному API Kufar с жестким фильтром раздела автозапчастей
     try:
-        rgn_param = f"&rgn={KUFAR_RGN[req.city]}" if req.city in KUFAR_RGN else ""
-        kufar_url = f"https://api.kufar.by/search-api/v2/search/rendered-paginated?cat=2010&query={encoded_full}&size=8{rgn_param}"
+        # Для Kufar лучше всего работает поиск: "Марка Модель Деталь"
+        kufar_query = f"{clean_car} {clean_part}".strip()
+        encoded_kufar = urllib.parse.quote(kufar_query)
+        
+        kufar_url = f"https://api.kufar.by/search-api/v2/search/rendered-paginated?cat=2010&query={encoded_kufar}&size=6"
         
         resp = await http_client.get(kufar_url)
         if resp.status_code == 200:
             ads = resp.json().get("ads", [])
             for ad in ads:
-                # В Kufar цена указана в копейках
+                # Цена в Kufar в копейках
                 price_val = float(ad.get("price_byn", 0)) / 100.0
                 if price_val <= 0:
                     price_val = float(ad.get("price_usd", 0)) * 3.25
 
                 title = ad.get("subject", clean_part)
                 link = ad.get("ad_link", "")
-                
-                # Фото детали
+
                 images = ad.get("images", [])
                 img_url = None
                 if images:
                     img_id = images[0].get("id")
                     if img_id:
                         img_url = f"https://rms.kufar.by/v1/list_thumbs_2x/{img_id[:2]}/{img_id}.jpg"
-
-                # Город
-                params = {p.get("p"): p.get("vl") for p in ad.get("ad_parameters", []) if "p" in p}
-                city_name = params.get("region", "РБ")
-                if isinstance(city_name, list):
-                    city_name = city_name[0] if city_name else "РБ"
 
                 if price_val > 0 and link:
                     results.append(PartItem(
@@ -160,53 +111,65 @@ async def search_parts(req: SearchRequest):
                         condition="Б/У",
                         source="Kufar Авто (Реальное объявление)",
                         sourceUrl=link,
-                        city=str(city_name),
+                        city="РБ",
                         priceByn=round(price_val, 1),
                         imageUrl=img_url
                     ))
     except Exception as e:
-        print(f"Kufar Search Error: {e}")
+        print(f"Kufar API error: {e}")
 
-    # 2. Прямые целевые Deeplinks (открывают именно искомую запчасть на конкретных сайтах)
+    # 2. Формируем ТОЧНЫЕ ссылки под каждую площадку:
+
+    # Bamper.by: формируем правильный slug
+    part_slug = slugify(clean_part)
+    car_slug = slugify(clean_car)
+    bamper_exact = f"https://bamper.by/search/zapchast_{part_slug}/" if part_slug else f"https://bamper.by/zchbu/?q={urllib.parse.quote(clean_part)}"
+
     results.append(PartItem(
-        title=f"Все предложения: {clean_part} ({clean_car})",
-        car=f"{clean_car} {req.engine or ''}".strip(),
+        title=f"Разборки Bamper.by: {clean_part}",
+        car=clean_car,
         condition="Б/У",
         source="Bamper.by",
-        sourceUrl=f"https://bamper.by/search/zapchast_{encoded_part}/?q={encoded_full}",
+        sourceUrl=bamper_exact,
         city="Минск / Разборки РБ",
-        priceByn=130.0,
+        priceByn=140.0,
         imageUrl="https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=200&auto=format&fit=crop&q=60"
     ))
 
+    # av.by Запчасти: точный поисковый URL
+    av_query = urllib.parse.quote(f"{clean_car} {clean_part}")
     results.append(PartItem(
-        title=f"Каталог запчастей av.by: {clean_part}",
+        title=f"Каталог av.by: {clean_part}",
         car=clean_car,
         condition="Б/У",
         source="av.by Запчасти",
-        sourceUrl=f"https://zapchasti.av.by/search?q={encoded_full}",
+        sourceUrl=f"https://zapchasti.av.by/search?query={av_query}",
         city="Вся Беларусь",
-        priceByn=115.0,
+        priceByn=120.0,
         imageUrl="https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=200&auto=format&fit=crop&q=60"
     ))
 
+    # Motorland.by: точный складской поиск
+    motor_query = urllib.parse.quote(f"{clean_car} {clean_part}")
     results.append(PartItem(
-        title=f"Наличие на складе Motorland: {clean_part}",
+        title=f"Склад Motorland: {clean_part}",
         car=clean_car,
         condition="Б/У",
         source="Motorland.by",
-        sourceUrl=f"https://motorland.by/auto-parts/?search_string={encoded_full}",
+        sourceUrl=f"https://motorland.by/auto-parts/?search_string={motor_query}",
         city="Минск (Колядичи)",
-        priceByn=150.0,
+        priceByn=155.0,
         imageUrl="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=200&auto=format&fit=crop&q=60"
     ))
 
+    # Mg.by: поиск по названию детали или OEM
+    mg_query = urllib.parse.quote(clean_part)
     results.append(PartItem(
-        title=f"Новый аналог / OEM склад: {clean_part}",
+        title=f"Новый аналог / склад Mg.by: {clean_part}",
         car=clean_car,
         condition="Новый",
-        source="Mg.by / Склад новых",
-        sourceUrl=f"https://mg.by/Search?Query={encoded_part}",
+        source="Mg.by / Armtek",
+        sourceUrl=f"https://mg.by/Search?Query={mg_query}",
         city="Доставка 24ч",
         priceByn=85.0,
         imageUrl="https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=200&auto=format&fit=crop&q=60"
