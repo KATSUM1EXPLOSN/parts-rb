@@ -29,7 +29,7 @@
 
   <div class="w-full max-w-md min-h-screen flex flex-col bg-white shadow-xl relative border-x border-slate-100">
 
-    <!-- Header -->
+    <!-- Шапка -->
     <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
@@ -42,20 +42,20 @@
               <span class="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded uppercase">РБ 🇧🇾</span>
             </h1>
             <p class="text-[11px] text-slate-500 flex items-center gap-1">
-              <span id="backendStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+              <span id="backendStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
               <span id="backendStatusText">Проверка сервера...</span>
             </p>
           </div>
         </div>
 
         <div class="flex items-center gap-1">
-          <button id="currencyBtn" onclick="toggleCurrency()" class="px-2 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-1">
+          <button id="currencyBtn" onclick="toggleCurrency()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-1">
             <span>BYN</span> 🇧🇾
           </button>
         </div>
       </div>
 
-      <!-- Режим ввода -->
+      <!-- Вкладки: VIN или Марка/Модель -->
       <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl mt-3 text-xs font-medium text-slate-600">
         <button id="tabVin" onclick="setSearchMode('vin')" class="py-1.5 rounded-lg bg-white text-blue-600 font-semibold shadow-sm transition-all flex items-center justify-center gap-1">
           <span>🔍</span> По VIN-коду
@@ -74,7 +74,7 @@
           <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <span>🧰</span> Мой гараж
           </span>
-          <span class="text-[10px] text-slate-400">⚡ выбор в 1 клик</span>
+          <span class="text-[10px] text-slate-400">⚡ в 1 клик</span>
         </div>
         <div id="garageList" class="flex gap-2 overflow-x-auto hide-scrollbar pb-1"></div>
       </div>
@@ -82,7 +82,7 @@
       <!-- Форма поиска -->
       <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm space-y-3.5">
         
-        <!-- VIN Section -->
+        <!-- Поле VIN -->
         <div id="vinSection" class="space-y-1.5">
           <div class="flex justify-between items-center">
             <label class="text-xs font-semibold text-slate-700 flex items-center gap-1">
@@ -113,7 +113,7 @@
           </div>
         </div>
 
-        <!-- Manual Section -->
+        <!-- Выбор Марка / Модель / Год -->
         <div id="manualSection" class="hidden space-y-2.5">
           <div>
             <label class="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
@@ -150,7 +150,7 @@
           </button>
         </div>
 
-        <!-- Поле запчасти -->
+        <!-- Поле ввода детали -->
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-700 flex items-center gap-1">
             <span>⚙️</span> Название детали или артикул (OEM)
@@ -162,6 +162,7 @@
             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
           
+          <!-- Быстрые теги деталей -->
           <div class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pt-1 pb-0.5">
             <button onclick="setPartTag('Бампер передний')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full flex items-center gap-1">🛡️ Бампер</button>
             <button onclick="setPartTag('Фара передняя')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full flex items-center gap-1">💡 Фары</button>
@@ -172,7 +173,7 @@
           </div>
         </div>
 
-        <!-- Город и состояние -->
+        <!-- Фильтры: Город и Состояние -->
         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
           <div>
             <label class="text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
@@ -201,7 +202,7 @@
           </div>
         </div>
 
-        <!-- Кнопка поиска -->
+        <!-- Кнопка запуска поиска -->
         <button 
           onclick="executeSearch()" 
           class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 transition-all"
@@ -212,13 +213,13 @@
 
       </div>
 
-      <!-- Быстрые площадки -->
+      <!-- Блок прямых ссылок на площадки -->
       <div id="directLinksSection" class="bg-slate-100/80 rounded-2xl p-3 border border-slate-200/60">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
             <span>⚡</span> Прямые ссылки на площадки
           </span>
-          <span class="text-[10px] text-slate-400">1 клик ↗</span>
+          <span class="text-[10px] text-slate-400">откроются с фильтром ↗</span>
         </div>
 
         <div class="grid grid-cols-2 gap-2 text-xs">
@@ -277,7 +278,7 @@
 
     </main>
 
-    <!-- Нижняя панель -->
+    <!-- Нижняя панель действий -->
     <div class="sticky bottom-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 flex items-center gap-2">
       <button onclick="shareResults()" class="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shadow">
         <span>✈️</span> Отправить в Telegram
@@ -287,7 +288,7 @@
       </button>
     </div>
 
-    <!-- Toast -->
+    <!-- Всплывающие уведомления (Toast) -->
     <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2 rounded-xl shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5">
       <span>🔔</span> <span id="toastText">Сообщение</span>
     </div>
@@ -295,7 +296,7 @@
   </div>
 
   <script>
-    // Подключение к развернутому бэкенду на Render
+    // Боевой адрес бэкенда на Render
     const API_BASE_URL = "https://parts-rb-1.onrender.com";
 
     const RB_CARS_DB = {
@@ -380,24 +381,25 @@
       pingBackend();
     });
 
-    // Фоновая проверка доступности и прогрев сервера Render
+    // Проверка статуса сервера
     async function pingBackend() {
       const dot = document.getElementById('backendStatusDot');
       const text = document.getElementById('backendStatusText');
       try {
         const res = await fetch(`${API_BASE_URL}/ping`, { method: 'GET' });
         if (res.ok) {
-          dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block";
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
           text.textContent = "Сервер онлайн 🟢";
         } else {
           throw new Error();
         }
       } catch (e) {
-        dot.className = "w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse";
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse";
         text.textContent = "Сервер просыпается ⏳";
       }
     }
 
+    // Логика работы Гаража
     function getGarage() {
       try {
         return JSON.parse(localStorage.getItem('partsrb_garage') || '[]');
@@ -581,17 +583,19 @@
       }
     }
 
+    // Формирование точных поисковых URL для каталогов РБ
     function generateDeepLinks(carLabel, part, cityKey) {
-      const q = encodeURIComponent(`${carLabel} ${part}`.trim());
-      const partClean = encodeURIComponent(part);
+      const fullQuery = `${carLabel} ${part}`.trim();
+      const q = encodeURIComponent(fullQuery);
+      const partClean = encodeURIComponent(part.trim());
       const kufarReg = KUFAR_REGIONS[cityKey] || "";
 
       return {
-        bamper: `https://bamper.by/zchbu/?q=${q}`,
-        kufar: `https://auto.kufar.by/l/avtotovary/zapchasti?query=${q}${kufarReg}`,
-        av: `https://zapchasti.av.by/search?query=${q}`,
-        motorland: `https://motorland.by/auto-parts/?search=${q}`,
-        armtek: `https://mg.by/Search?Query=${partClean || q}`
+        bamper: `https://bamper.by/search/zapchast_${partClean}/?q=${q}`,
+        kufar: `https://www.kufar.by/l/auto-goods/parts?query=${q}${kufarReg}`,
+        av: `https://zapchasti.av.by/search?q=${q}`,
+        motorland: `https://motorland.by/auto-parts/?search_string=${q}`,
+        armtek: `https://mg.by/Search?Query=${partClean}`
       };
     }
 
@@ -616,6 +620,7 @@
       const cond = document.getElementById('conditionSelect').value;
       lastQueryInfo = { carLabel, part, city, cond };
 
+      // Обновляем прямые ссылки в блоке быстрых площадок
       const links = generateDeepLinks(carLabel, part, city);
       document.getElementById('linkBamper').href = links.bamper;
       document.getElementById('linkKufar').href = links.kufar;
@@ -627,8 +632,8 @@
       container.innerHTML = `
         <div class="text-center py-6 text-xs text-blue-600 space-y-2">
           <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-          <p>⏳ Опрашиваем бэкенд и разборки РБ...</p>
-          <p class="text-[10px] text-slate-400">Первый запрос может занять до 30-40 сек (Render просыпается)</p>
+          <p>⏳ Опрашиваем склады и разборки РБ...</p>
+          <p class="text-[10px] text-slate-400">Если сервер спал, первый ответ может занять 20-30 сек</p>
         </div>
       `;
 
@@ -648,22 +653,28 @@
         if (resp.ok) {
           const liveData = await resp.json();
           renderCards(liveData);
-          showToast("✅ Ответ получен с Render!");
-          document.getElementById('backendStatusDot').className = "w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block";
+          showToast("✅ Предложения загружены с сервера!");
+          document.getElementById('backendStatusDot').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
           document.getElementById('backendStatusText').textContent = "Сервер онлайн 🟢";
           return;
         }
       } catch (err) {
-        console.warn("Бэкенд недоступен или превышен таймаут:", err);
+        console.warn("Бэкенд недоступен:", err);
       }
 
+      // Резервная динамическая отрисовка, если сервер не ответил вовремя
       renderFallbackCards(carLabel, part, city, cond);
-      showToast("⚠️ Резервный режим (сервер Render ещё просыпается)");
+      showToast("⚠️ Резервный режим (ссылки активны)");
     }
 
     function renderCards(items) {
       const container = document.getElementById('resultsList');
       document.getElementById('resultsCountBadge').textContent = `Найдено: ${items.length} 🎯`;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">Ничего не найдено. Попробуйте изменить название детали.</div>`;
+        return;
+      }
 
       container.innerHTML = items.map(item => `
         <div class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-sm space-y-2">
@@ -673,11 +684,11 @@
             </span>
             <span class="price-tag text-sm font-bold text-slate-900" data-byn="${item.priceByn}">${item.priceByn} BYN</span>
           </div>
-          <h3 class="text-xs font-semibold text-slate-800">📦 ${item.title}</h3>
+          <h3 class="text-xs font-semibold text-slate-800 leading-snug">📦 ${item.title}</h3>
           <p class="text-[11px] text-slate-500">🚘 ${item.car} &bull; 🏪 ${item.source}</p>
           <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span class="text-slate-400">📍 ${item.city}</span>
-            <a href="${item.sourceUrl}" target="_blank" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg flex items-center gap-1">
+            <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg flex items-center gap-1 shadow-sm transition-colors">
               <span>Открыть</span> <span>↗</span>
             </a>
           </div>
@@ -687,12 +698,20 @@
     }
 
     function renderFallbackCards(carLabel, part, city, cond) {
-      const sample = [
-        { title: `${part} оригинал с разборки`, car: carLabel, condition: "Б/У", source: "Bamper.by", sourceUrl: document.getElementById('linkBamper').href, city: "Минск (Малиновка)", priceByn: 125 },
-        { title: `${part} в сборе (гарантия 14 дней)`, car: carLabel, condition: "Б/У", source: "Motorland.by", sourceUrl: document.getElementById('linkMotorland').href, city: "Колядичи", priceByn: 155 },
-        { title: `${part} новый дубликат в наличии`, car: carLabel, condition: "Новый", source: "Armtek / Mg.by", sourceUrl: document.getElementById('linkArmtek').href, city: "Доставка 24ч", priceByn: 88 }
+      const links = generateDeepLinks(carLabel, part, city);
+      const fallbackList = [
+        { title: `${part} — все варианты на Bamper`, car: carLabel, condition: "Б/У", source: "Bamper.by", sourceUrl: links.bamper, city: "Минск / Разборки РБ", priceByn: 130 },
+        { title: `${part} — объявления на Kufar`, car: carLabel, condition: "Б/У", source: "Kufar Авто", sourceUrl: links.kufar, city: "Минск и регионы", priceByn: 95 },
+        { title: `${part} — каталог av.by`, car: carLabel, condition: "Б/У", source: "av.by Запчасти", sourceUrl: links.av, city: "Вся Беларусь", priceByn: 115 },
+        { title: `${part} на складе Motorland`, car: carLabel, condition: "Б/У", source: "Motorland.by", sourceUrl: links.motorland, city: "Колядичи", priceByn: 145 },
+        { title: `${part} новый аналог в наличии`, car: carLabel, condition: "Новый", source: "Mg.by / Armtek", sourceUrl: links.armtek, city: "Доставка 24ч", priceByn: 85 }
       ];
-      renderCards(sample);
+
+      let filtered = fallbackList;
+      if (cond === 'used') filtered = fallbackList.filter(x => x.condition === 'Б/У');
+      if (cond === 'new') filtered = fallbackList.filter(x => x.condition === 'Новый');
+
+      renderCards(filtered);
     }
 
     function updateRenderedPrices() {
