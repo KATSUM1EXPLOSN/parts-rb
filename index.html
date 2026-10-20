@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>PartsRB Pro 🇧🇾 — Мировой каталог запчастей</title>
+  <title>PartsRB Pro 🇧🇾 — Агрегатор автозапчастей</title>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,14 +23,25 @@
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Скелетон мерцания (Shimmer) */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col items-center">
 
   <div class="w-full max-w-md min-h-screen flex flex-col bg-white shadow-xl relative border-x border-slate-100">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-3">
+    <!-- Header с эффектом стекла (Glassmorphism) -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-lg shadow-md text-white font-bold">
@@ -42,24 +53,33 @@
               <span class="text-[9px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">РБ 🇧🇾</span>
             </h1>
             <p class="text-[11px] text-slate-500 flex items-center gap-1">
-              <span id="backendStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
-              <span id="backendStatusText">Загрузка мировой базы...</span>
+              <span id="backendStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              <span id="backendStatusText">Каталог Bamper.by активен</span>
             </p>
           </div>
         </div>
 
-        <button id="currencyBtn" onclick="toggleCurrency()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-1">
-          <span>BYN</span> 🇧🇾
-        </button>
+        <div class="flex items-center gap-1.5">
+          <!-- Кнопка Избранного -->
+          <button onclick="toggleFavoritesView()" id="favToggleBtn" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors relative" title="Избранное">
+            <span>❤️</span>
+            <span id="favCountBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1 rounded-full hidden">0</span>
+          </button>
+
+          <!-- Переключатель валюты -->
+          <button id="currencyBtn" onclick="toggleCurrency()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-1">
+            <span>BYN</span> 🇧🇾
+          </button>
+        </div>
       </div>
 
-      <!-- Быстрый Live-поиск по всем моделям мира -->
+      <!-- Быстрый Live-поиск -->
       <div class="mt-3 relative">
         <input 
           type="text" 
           id="smartSearchInput" 
           oninput="onSmartSearch(this.value)" 
-          placeholder="🔎 Поиск любого авто: 'Passat', 'W124', 'E39', 'Coolray'..." 
+          placeholder="🔎 Поиск любого авто: 'Passat', 'W124', 'E60', 'Coolray'..." 
           class="w-full px-3.5 py-2 pl-9 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
         />
         <span class="absolute left-3 top-2.5 text-xs text-slate-400">✨</span>
@@ -68,6 +88,15 @@
     </header>
 
     <main class="p-4 flex-1 space-y-4">
+
+      <!-- Карусель категорий деталей с Bamper.by -->
+      <div>
+        <div class="flex justify-between items-center mb-1.5 px-0.5">
+          <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Категории узлов</span>
+          <span class="text-[10px] text-slate-400">с Bamper.by</span>
+        </div>
+        <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1" id="categoriesCarousel"></div>
+      </div>
 
       <!-- Блок VIN-декодера -->
       <div class="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 space-y-2">
@@ -93,7 +122,7 @@
             <span id="vinDecodedMake">Марка авто</span>
             <span id="vinDecodedYear" class="bg-emerald-200 px-1 rounded text-[10px]">Год</span>
           </div>
-          <p id="vinDecodedDesc" class="text-emerald-700 text-[10px]">Страна / Производитель определены</p>
+          <p id="vinDecodedDesc" class="text-emerald-700 text-[10px]">Страна / Сборка определены</p>
         </div>
       </div>
 
@@ -101,7 +130,7 @@
       <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm space-y-3">
         
         <div>
-          <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Марка автомобиля (все марки мира)</label>
+          <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Марка автомобиля</label>
           <select id="brandSelect" onchange="onBrandChange()" class="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-500">
             <option value="">Загрузка марок...</option>
           </select>
@@ -122,23 +151,23 @@
           </div>
         </div>
 
-        <!-- Поле детали -->
+        <!-- Поле детали со справочником Bamper.by -->
         <div class="space-y-1.5 pt-1">
-          <label class="text-xs font-semibold text-slate-700">⚙️ Название детали или артикул (OEM)</label>
-          <input 
-            type="text" 
-            id="partInput" 
-            placeholder="Фара, бампер, колодки, генератор, стойка..." 
-            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-          />
-
-          <!-- Быстрые теги -->
-          <div class="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pt-1">
-            <button onclick="setPartTag('Колодки')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">🛑 Колодки</button>
-            <button onclick="setPartTag('Фара')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">💡 Фара</button>
-            <button onclick="setPartTag('Бампер')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">🛡️ Бампер</button>
-            <button onclick="setPartTag('Капот')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">🚘 Капот</button>
-            <button onclick="setPartTag('Генератор')" class="shrink-0 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">⚡ Генератор</button>
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-700">⚙️ Название детали (Каталог Bamper)</label>
+            <span id="detectedOemBadge" onclick="copyOemCode()" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded cursor-pointer active:scale-95 transition-transform" title="Нажмите, чтобы скопировать">OEM: 1K0698151 📋</span>
+          </div>
+          
+          <div class="relative">
+            <input 
+              type="text" 
+              id="partInput" 
+              list="bamperPartsDatalist"
+              placeholder="Фара, бампер передний, суппорт, генератор..." 
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+            />
+            <!-- Datalist с автоподстановкой всех узлов Bamper.by -->
+            <datalist id="bamperPartsDatalist"></datalist>
           </div>
         </div>
 
@@ -148,25 +177,25 @@
       <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-sm space-y-2.5">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            <span>🌐</span> Выберите площадки для поиска
+            <span>🌐</span> Площадки поиска
           </span>
           <button onclick="toggleAllSources()" class="text-[10px] text-blue-600 hover:underline">Все / Снять</button>
         </div>
 
         <div class="grid grid-cols-2 gap-2 text-xs">
           <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
-            <input type="checkbox" id="src_kufar" checked class="rounded text-blue-600 focus:ring-0">
-            <div>
-              <div class="font-semibold text-slate-800">Kufar Авто</div>
-              <div class="text-[9px] text-slate-400">Частники и разборки</div>
-            </div>
-          </label>
-
-          <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
             <input type="checkbox" id="src_bamper" checked class="rounded text-blue-600 focus:ring-0">
             <div>
               <div class="font-semibold text-slate-800">Bamper.by</div>
               <div class="text-[9px] text-slate-400">Каталог авторазборок</div>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
+            <input type="checkbox" id="src_kufar" checked class="rounded text-blue-600 focus:ring-0">
+            <div>
+              <div class="font-semibold text-slate-800">Kufar Авто</div>
+              <div class="text-[9px] text-slate-400">Частники и цены в BYN</div>
             </div>
           </label>
 
@@ -240,6 +269,7 @@
       </button>
     </div>
 
+    <!-- Toast-уведомление -->
     <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2 rounded-xl shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5">
       <span>🔔</span> <span id="toastText">Сообщение</span>
     </div>
@@ -252,6 +282,68 @@
     let currentCurrency = 'BYN';
     const BYN_PER_USD = 3.28;
     let lastQueryInfo = null;
+    let showingFavorites = false;
+
+    // 1. ПОЛНЫЙ КЛАССИФИКАТОР ЗАПЧАСТЕЙ С BAMPER.BY
+    const BAMPER_CATEGORIES = [
+      {
+        name: "Кузовные детали",
+        icon: "🛡️",
+        items: [
+          "Бампер передний", "Бампер задний", "Капот", "Крыло переднее левое", "Крыло переднее правое",
+          "Крыло заднее", "Дверь передняя левая", "Дверь передняя правая", "Дверь задняя левая", 
+          "Дверь задняя правая", "Крышка багажника", "Решетка радиатора", "Усилитель бампера", "Зеркало боковое"
+        ]
+      },
+      {
+        name: "Оптика и свет",
+        icon: "💡",
+        items: [
+          "Фара передняя левая", "Фара передняя правая", "Фонарь задний левый", "Фонарь задний правый",
+          "Противотуманная фара (ПТФ)", "Повторитель поворота", "Блок розжига ксенона"
+        ]
+      },
+      {
+        name: "Двигатель и навесное",
+        icon: "⚙️",
+        items: [
+          "Двигатель в сборе (ДВС)", "Генератор", "Стартер", "Турбина (Турбокомпрессор)", 
+          "Компрессор кондиционера", "ТНВД", "Форсунка топливная", "Дроссельная заслонка",
+          "Коллектор впускной", "Коллектор выпускной", "Радиатор охлаждения", "Интеркулер"
+        ]
+      },
+      {
+        name: "Ходовая и подвеска",
+        icon: "🔩",
+        items: [
+          "Амортизатор передний", "Амортизатор задний", "Рычаг передний", "Рычаг задний",
+          "Подрамник передний", "Балка задняя", "Ступица", "Поворотный кулак", "Пружина подвески", "Стабилизатор"
+        ]
+      },
+      {
+        name: "Тормозная система",
+        icon: "🛑",
+        items: [
+          "Суппорт тормозной передний", "Суппорт тормозной задний", "Диск тормозной", "Колодки тормозные",
+          "Блок ABS", "Главный тормозной цилиндр", "Вакуумный усилитель"
+        ]
+      },
+      {
+        name: "Трансмиссия (КПП)",
+        icon: "🕹️",
+        items: [
+          "Коробка передач (МКПП/АКПП)", "Полуось (Приводной вал)", "Сцепление (комплект)", 
+          "Маховик", "Карданный вал", "Редуктор моста", "Раздаточная коробка"
+        ]
+      },
+      {
+        name: "Рулевое управление",
+        icon: "🎯",
+        items: [
+          "Рулевая рейка", "Насос ГУР", "Электроусилитель руля (ЭУР)", "Рулевая колонка", "Рулевой наконечник"
+        ]
+      }
+    ];
 
     // Встроенный словарь WMI для быстрого распознавания VIN
     const WMI_MAP = {
@@ -275,54 +367,82 @@
         document.body.classList.add('tg-mode');
       }
 
+      renderCategoriesCarousel();
+      populateBamperDatalist();
+      updateFavBadge();
       await loadGlobalCarsFromCDN();
     });
 
-    // Загрузка мировой базы напрямую из открытого CDN репозитория
+    // Тактильный виброотклик Telegram
+    function triggerHaptic(type = 'light') {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'warning') window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+        }
+      } catch (e) {}
+    }
+
+    // Рендер карусели категорий деталей
+    function renderCategoriesCarousel() {
+      const carousel = document.getElementById('categoriesCarousel');
+      carousel.innerHTML = BAMPER_CATEGORIES.map((cat, idx) => `
+        <button onclick="selectCategory(${idx})" class="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl text-xs font-semibold text-slate-800 transition-all border border-slate-200/60">
+          <span>${cat.icon}</span>
+          <span>${cat.name}</span>
+        </button>
+      `).join('');
+    }
+
+    function selectCategory(idx) {
+      triggerHaptic('light');
+      const cat = BAMPER_CATEGORIES[idx];
+      // Подставляем первую деталь узла
+      document.getElementById('partInput').value = cat.items[0];
+      showToast(`Категория: ${cat.name}`);
+    }
+
+    // Заполнение Datalist для автодополнения из Bamper.by
+    function populateBamperDatalist() {
+      const dl = document.getElementById('bamperPartsDatalist');
+      const allParts = [];
+      BAMPER_CATEGORIES.forEach(c => allParts.push(...c.items));
+      dl.innerHTML = allParts.map(p => `<option value="${p}">`).join('');
+    }
+
+    // Загрузка мировой базы авто
     async function loadGlobalCarsFromCDN() {
       const statusText = document.getElementById('backendStatusText');
       const statusDot = document.getElementById('backendStatusDot');
-      const brandSel = document.getElementById('brandSelect');
 
       try {
-        // Запрос к открытому глобальному датасету автомобилей
         const res = await fetch('https://raw.githubusercontent.com/matthieua/carrr/master/data/cars.json');
         if (res.ok) {
           const rawList = await res.json();
           processRawCars(rawList);
           statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
-          statusText.textContent = `Мировая база активна: ${Object.keys(ALL_CARS_DATABASE).length} марок 🌍`;
+          statusText.textContent = `Мировая база: ${Object.keys(ALL_CARS_DATABASE).length} марок 🌍`;
           return;
         }
-      } catch (err) {
-        console.warn("CDN недоступен, загружаем базовый резервный справочник...");
-      }
+      } catch (err) {}
 
-      // Резервный справочник, если внешний GitHub временно недоступен с мобильного оператора
       loadFallbackDatabase();
       statusDot.className = "w-2 h-2 rounded-full bg-blue-500 inline-block";
       statusText.textContent = "База РБ и мировые авто активны 🚗";
     }
 
-    // Превращение плоского списка авто в структурированное дерево (Марка -> Модели -> Поколения)
     function processRawCars(list) {
       ALL_CARS_DATABASE = {};
-
       list.forEach(item => {
         const b = (item.brand || item.make || '').trim();
         const m = (item.model || '').trim();
         const gen = (item.generation || (item.year ? `${item.year} г.` : 'Все года')).trim();
-
         if (!b || !m) return;
-
         if (!ALL_CARS_DATABASE[b]) ALL_CARS_DATABASE[b] = {};
         if (!ALL_CARS_DATABASE[b][m]) ALL_CARS_DATABASE[b][m] = [];
-
-        if (!ALL_CARS_DATABASE[b][m].includes(gen)) {
-          ALL_CARS_DATABASE[b][m].push(gen);
-        }
+        if (!ALL_CARS_DATABASE[b][m].includes(gen)) ALL_CARS_DATABASE[b][m].push(gen);
       });
-
       renderBrandsList();
     }
 
@@ -354,22 +474,7 @@
         },
         "Audi": {
           "A6": ["C4 (1994-1997)", "C5 (1997-2004)", "C6 (2004-2011)", "C7 (2011-2018)", "C8 (2018+)"],
-          "A4": ["B5 (1994-2001)", "B6 (2000-2004)", "B7 (2004-2008)", "B8 (2007-2015)", "B9 (2015+)"],
-          "100": ["C3 (1982-1991)", "C4 (1991-1994)"]
-        },
-        "Mercedes-Benz": {
-          "E-Class": ["W124 (1984-1996)", "W210 (1995-2002)", "W211 (2002-2009)", "W212 (2009-2016)", "W213 (2016+)"],
-          "C-Class": ["W202 (1993-2000)", "W203 (2000-2007)", "W204 (2007-2014)", "W205 (2014-2021)"],
-          "S-Class": ["W140 (1991-1998)", "W220 (1998-2005)", "W221 (2005-2013)"]
-        },
-        "Peugeot": {
-          "406": ["1995-2004"],
-          "307": ["2001-2008"],
-          "308": ["1 пок. (2007-2013)", "2 пок. (2013-2021)"]
-        },
-        "Ford": {
-          "Focus": ["1 пок. (1998-2004)", "2 пок. (2004-2011)", "3 пок. (2011-2018)"],
-          "Mondeo": ["2 пок. (1996-2000)", "3 пок. (2000-2007)", "4 пок. (2007-2014)"]
+          "A4": ["B5 (1994-2001)", "B6 (2000-2004)", "B7 (2004-2008)", "B8 (2007-2015)", "B9 (2015+)"]
         }
       };
       renderBrandsList();
@@ -378,9 +483,7 @@
     function renderBrandsList() {
       const brandSel = document.getElementById('brandSelect');
       brandSel.innerHTML = '<option value="">Выберите марку...</option>';
-
-      const sortedBrands = Object.keys(ALL_CARS_DATABASE).sort();
-      sortedBrands.forEach(brand => {
+      Object.keys(ALL_CARS_DATABASE).sort().forEach(brand => {
         const opt = document.createElement('option');
         opt.value = brand;
         opt.textContent = `🚗 ${brand}`;
@@ -389,6 +492,7 @@
     }
 
     function onBrandChange() {
+      triggerHaptic('light');
       const brand = document.getElementById('brandSelect').value;
       const modelSel = document.getElementById('modelSelect');
       const genSel = document.getElementById('genSelect');
@@ -403,8 +507,7 @@
       }
 
       modelSel.disabled = false;
-      const models = Object.keys(ALL_CARS_DATABASE[brand]).sort();
-      models.forEach(m => {
+      Object.keys(ALL_CARS_DATABASE[brand]).sort().forEach(m => {
         const opt = document.createElement('option');
         opt.value = m;
         opt.textContent = m;
@@ -413,20 +516,19 @@
     }
 
     function onModelChange() {
+      triggerHaptic('light');
       const brand = document.getElementById('brandSelect').value;
       const model = document.getElementById('modelSelect').value;
       const genSel = document.getElementById('genSelect');
 
       genSel.innerHTML = '<option value="">Выберите поколение/год...</option>';
-
-      if (!model || !ALL_CARS_DATABASE[brand] || !ALL_CARS_DATABASE[brand][model]) {
+      if (!model || !ALL_CARS_DATABASE[brand]?.[model]) {
         genSel.disabled = true;
         return;
       }
 
       genSel.disabled = false;
-      const generations = ALL_CARS_DATABASE[brand][model];
-      generations.forEach(g => {
+      ALL_CARS_DATABASE[brand][model].forEach(g => {
         const opt = document.createElement('option');
         opt.value = g;
         opt.textContent = g;
@@ -434,7 +536,7 @@
       });
     }
 
-    // Умный мгновенный поиск на лету
+    // Умный мгновенный поиск
     function onSmartSearch(val) {
       const box = document.getElementById('smartResultsBox');
       const q = val.trim().toLowerCase();
@@ -446,13 +548,8 @@
       const matches = [];
       for (const brand in ALL_CARS_DATABASE) {
         for (const model in ALL_CARS_DATABASE[brand]) {
-          const fullQuery = `${brand} ${model}`.toLowerCase();
-          if (fullQuery.includes(q)) {
-            matches.push({
-              brand: brand,
-              model: model,
-              gens: ALL_CARS_DATABASE[brand][model]
-            });
+          if (`${brand} ${model}`.toLowerCase().includes(q)) {
+            matches.push({ brand, model, gens: ALL_CARS_DATABASE[brand][model] });
             if (matches.length >= 8) break;
           }
         }
@@ -477,6 +574,7 @@
     }
 
     function applySmartMatch(brand, model) {
+      triggerHaptic('medium');
       document.getElementById('brandSelect').value = brand;
       onBrandChange();
       document.getElementById('modelSelect').value = model;
@@ -494,13 +592,13 @@
 
       const box = document.getElementById('vinDecodeBox');
       if (val.length >= 3) {
-        const wmi = val.substring(0, 3);
-        const hit = WMI_MAP[wmi];
+        const hit = WMI_MAP[val.substring(0, 3)];
         if (hit) {
+          triggerHaptic('success');
           box.classList.remove('hidden');
           document.getElementById('vinDecodedMake').textContent = hit.brand;
           document.getElementById('vinDecodedYear').textContent = hit.country;
-          document.getElementById('vinDecodedDesc').textContent = `Страна / Сборка: ${hit.country}.`;
+          document.getElementById('vinDecodedDesc').textContent = `Страна сборки: ${hit.country}.`;
 
           if (document.getElementById('brandSelect').value !== hit.brand && ALL_CARS_DATABASE[hit.brand]) {
             document.getElementById('brandSelect').value = hit.brand;
@@ -513,6 +611,7 @@
     }
 
     async function pasteVin() {
+      triggerHaptic('light');
       try {
         const text = await navigator.clipboard.readText();
         if (text) {
@@ -526,7 +625,14 @@
     }
 
     function setPartTag(tag) {
+      triggerHaptic('light');
       document.getElementById('partInput').value = tag;
+    }
+
+    function copyOemCode() {
+      triggerHaptic('success');
+      navigator.clipboard.writeText("1K0698151");
+      showToast("📋 Артикул скопирован в буфер!");
     }
 
     function makeSlug(text) {
@@ -535,41 +641,158 @@
     }
 
     function toggleAllSources() {
+      triggerHaptic('light');
       const ids = ['src_kufar', 'src_bamper', 'src_av', 'src_motorland', 'src_mg', 'src_autoprivoz'];
       const anyUnchecked = ids.some(id => !document.getElementById(id).checked);
       ids.forEach(id => document.getElementById(id).checked = anyUnchecked);
       showToast(anyUnchecked ? "Все сайты выбраны" : "Выбор снят");
     }
 
-    // Выполнение поиска
+    // 2. СИСТЕМА ИЗБРАННОГО (ЗАКЛАДКИ)
+    function getFavorites() {
+      try {
+        return JSON.parse(localStorage.getItem('partsrb_favs') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function toggleFavorite(id, title, price, url, source, car) {
+      triggerHaptic('medium');
+      let favs = getFavorites();
+      const existsIndex = favs.findIndex(f => f.id === id);
+
+      if (existsIndex >= 0) {
+        favs.splice(existsIndex, 1);
+        showToast("Удалено из избранного");
+      } else {
+        favs.push({ id, title, price, url, source, car });
+        showToast("❤️ Добавлено в избранное!");
+      }
+
+      localStorage.setItem('partsrb_favs', JSON.stringify(favs));
+      updateFavBadge();
+
+      if (showingFavorites) {
+        renderFavorites();
+      } else {
+        updateHeartIcons();
+      }
+    }
+
+    function updateFavBadge() {
+      const favs = getFavorites();
+      const badge = document.getElementById('favCountBadge');
+      if (favs.length > 0) {
+        badge.textContent = favs.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function updateHeartIcons() {
+      const favs = getFavorites();
+      document.querySelectorAll('.fav-btn').forEach(btn => {
+        const id = btn.getAttribute('data-id');
+        const isFav = favs.some(f => f.id === id);
+        btn.innerHTML = isFav ? '❤️' : '🤍';
+      });
+    }
+
+    function toggleFavoritesView() {
+      triggerHaptic('medium');
+      showingFavorites = !showingFavorites;
+      const title = document.getElementById('resultsTitle');
+
+      if (showingFavorites) {
+        title.innerHTML = `<span>❤️</span> Избранные запчасти`;
+        renderFavorites();
+      } else {
+        title.innerHTML = `<span>📋</span> Карточки поиска`;
+        if (lastQueryInfo) executeSearch();
+        else document.getElementById('resultsList').innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Выберите авто и деталь</div>`;
+      }
+    }
+
+    function renderFavorites() {
+      const favs = getFavorites();
+      const container = document.getElementById('resultsList');
+      document.getElementById('resultsCountBadge').textContent = `В закладках: ${favs.length}`;
+
+      if (favs.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">У вас пока нет сохранённых запчастей 🤍</div>`;
+        return;
+      }
+
+      container.innerHTML = favs.map(item => `
+        <div class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-sm space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">Б/У</span>
+            <div class="flex items-center gap-2">
+              <span class="price-tag text-sm font-bold text-slate-900" data-byn="${item.price}">${item.price} BYN</span>
+              <button onclick="toggleFavorite('${item.id}')" class="text-sm">❤️</button>
+            </div>
+          </div>
+          <h3 class="text-xs font-semibold text-slate-800 leading-snug">📦 ${item.title}</h3>
+          <p class="text-[11px] text-slate-500">🚘 ${item.car} &bull; 🏪 ${item.source}</p>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">📍 Европочта: ~5-10 BYN</span>
+            <a href="${item.url}" target="_blank" class="px-3 py-1 bg-blue-600 text-white font-medium text-xs rounded-lg">Открыть ↗</a>
+          </div>
+        </div>
+      `).join('');
+      updateRenderedPrices();
+    }
+
+    // 3. ЗАПУСК ПОИСКА И СКЕЛЕТОНЫ ЗАГРУЗКИ
     async function executeSearch() {
+      triggerHaptic('heavy');
+      showingFavorites = false;
+
       const part = document.getElementById('partInput').value.trim();
       const brand = document.getElementById('brandSelect').value;
       const model = document.getElementById('modelSelect').value;
       const gen = document.getElementById('genSelect').value;
 
-      if (!part) return showToast("⚠️ Укажите запчасть");
-      if (!brand || !model) return showToast("⚠️ Выберите марку и модель");
+      if (!part) {
+        triggerHaptic('warning');
+        return showToast("⚠️ Укажите запчасть");
+      }
+      if (!brand || !model) {
+        triggerHaptic('warning');
+        return showToast("⚠️ Выберите марку и модель");
+      }
 
       const carLabel = `${brand} ${model} ${gen || ''}`.trim();
       lastQueryInfo = { carLabel, part };
 
       const container = document.getElementById('resultsList');
-      container.innerHTML = `
-        <div class="text-center py-6 text-xs text-blue-600 space-y-2">
-          <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-          <p>⏳ Формируем целевые карточки по выбранным складам...</p>
+      
+      // Рендер скелетона мерцания (Skeleton Shimmer)
+      container.innerHTML = [1, 2, 3].map(() => `
+        <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-2.5">
+          <div class="flex justify-between items-center">
+            <div class="h-4 w-16 skeleton rounded-md"></div>
+            <div class="h-4 w-20 skeleton rounded-md"></div>
+          </div>
+          <div class="h-3 w-3/4 skeleton rounded-md"></div>
+          <div class="h-3 w-1/2 skeleton rounded-md"></div>
+          <div class="pt-2 flex justify-between items-center border-t border-slate-100">
+            <div class="h-3 w-24 skeleton rounded-md"></div>
+            <div class="h-6 w-16 skeleton rounded-lg"></div>
+          </div>
         </div>
-      `;
+      `).join('');
 
-      // 1. Запрос к Kufar через бэкенд, если Kufar включен
+      // Запрос к Kufar через бэкенд
       let kufarAds = [];
       if (document.getElementById('src_kufar').checked) {
         try {
           const resp = await fetch(`${API_BASE_URL}/api/search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ car: `${brand} ${model}`, part: part })
+            body: JSON.stringify({ car: `${brand} ${model}`, part })
           });
           if (resp.ok) {
             const data = await resp.json();
@@ -578,13 +801,14 @@
         } catch (e) {}
       }
 
-      // 2. Сбор остальных карточек согласно чекбоксам
+      // Генерация точных целевых карточек с Bamper.by слагами
       const fullQ = encodeURIComponent(`${brand} ${model} ${part}`);
       const partSlug = makeSlug(part);
       const items = [...kufarAds];
 
       if (document.getElementById('src_bamper').checked) {
         items.push({
+          id: `bamper_${partSlug}`,
           title: `Разборки Bamper.by: ${part} (${brand} ${model})`,
           car: carLabel,
           condition: "Б/У",
@@ -597,6 +821,7 @@
 
       if (document.getElementById('src_av').checked) {
         items.push({
+          id: `av_${fullQ}`,
           title: `Каталог av.by: ${part}`,
           car: carLabel,
           condition: "Б/У",
@@ -609,6 +834,7 @@
 
       if (document.getElementById('src_motorland').checked) {
         items.push({
+          id: `motor_${fullQ}`,
           title: `Склад Motorland: ${part} (гарантия 14 дней)`,
           car: carLabel,
           condition: "Б/У",
@@ -621,6 +847,7 @@
 
       if (document.getElementById('src_autoprivoz').checked) {
         items.push({
+          id: `privoz_${fullQ}`,
           title: `Автопривоз склад: ${part}`,
           car: carLabel,
           condition: "Б/У",
@@ -633,6 +860,7 @@
 
       if (document.getElementById('src_mg').checked) {
         items.push({
+          id: `mg_${fullQ}`,
           title: `Склады Mg.by / Armtek: новый ${part}`,
           car: carLabel,
           condition: "Новый",
@@ -644,6 +872,7 @@
       }
 
       renderCards(items);
+      triggerHaptic('success');
       showToast(`Найдено предложений: ${items.length}`);
     }
 
@@ -656,28 +885,42 @@
         return;
       }
 
-      container.innerHTML = items.map(item => `
-        <div class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-sm space-y-2">
-          <div class="flex items-start justify-between gap-2">
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${item.condition === 'Б/У' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
-              ${item.condition}
-            </span>
-            <span class="price-tag text-sm font-bold text-slate-900" data-byn="${item.priceByn}">${item.priceByn} BYN</span>
+      const favs = getFavorites();
+
+      container.innerHTML = items.map(item => {
+        const isFav = favs.some(f => f.id === item.id);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-sm space-y-2 transition-all hover:border-blue-300">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${item.condition === 'Б/У' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                ${item.condition}
+              </span>
+              <div class="flex items-center gap-2">
+                <span class="price-tag text-sm font-bold text-slate-900" data-byn="${item.priceByn}">${item.priceByn} BYN</span>
+                <button onclick="toggleFavorite('${item.id}', '${item.title}', ${item.priceByn}, '${item.sourceUrl}', '${item.source}', '${item.car}')" class="fav-btn text-sm active:scale-125 transition-transform" data-id="${item.id}">
+                  ${isFav ? '❤️' : '🤍'}
+                </button>
+              </div>
+            </div>
+            <h3 class="text-xs font-semibold text-slate-800 leading-snug">📦 ${item.title}</h3>
+            <p class="text-[11px] text-slate-500">🚘 ${item.car} &bull; 🏪 ${item.source}</p>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <div>
+                <span class="text-slate-500 block">📍 ${item.city}</span>
+                <span class="text-[9px] text-slate-400 font-medium">📦 Доставка по РБ: ~5-12 BYN</span>
+              </div>
+              <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" onclick="triggerHaptic('light')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg flex items-center gap-1 shadow-sm transition-colors">
+                <span>Открыть</span> <span>↗</span>
+              </a>
+            </div>
           </div>
-          <h3 class="text-xs font-semibold text-slate-800 leading-snug">📦 ${item.title}</h3>
-          <p class="text-[11px] text-slate-500">🚘 ${item.car} &bull; 🏪 ${item.source}</p>
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span class="text-slate-400">📍 ${item.city}</span>
-            <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg flex items-center gap-1 shadow-sm transition-colors">
-              <span>Открыть</span> <span>↗</span>
-            </a>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
       updateRenderedPrices();
     }
 
     function toggleCurrency() {
+      triggerHaptic('light');
       currentCurrency = currentCurrency === 'BYN' ? 'USD' : 'BYN';
       document.getElementById('currencyBtn').innerHTML = currentCurrency === 'BYN' ? '<span>BYN</span> 🇧🇾' : '<span>USD</span> 💵';
       updateRenderedPrices();
@@ -705,8 +948,9 @@
     }
 
     function shareResults() {
+      triggerHaptic('medium');
       if (!lastQueryInfo) return showToast("⚠️ Сначала выполните поиск");
-      const text = `🔍 Поиск детали: ${lastQueryInfo.part} на ${lastQueryInfo.carLabel}\nСсылка: ${window.location.href}`;
+      const text = `🔍 Поиск запчасти: ${lastQueryInfo.part} на ${lastQueryInfo.carLabel}\nСсылка: ${window.location.href}`;
       if (window.Telegram?.WebApp?.sendData) {
         window.Telegram.WebApp.sendData(JSON.stringify(lastQueryInfo));
         return;
@@ -715,6 +959,7 @@
     }
 
     function resetFilters() {
+      triggerHaptic('medium');
       document.getElementById('partInput').value = '';
       document.getElementById('vinInput').value = '';
       document.getElementById('vinDecodeBox').classList.add('hidden');
